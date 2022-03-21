@@ -49,7 +49,7 @@ const getBlog = async function (req, res) {
     if(filterByQuery.length == 0) {
         return res.status(404).send({status:false, msg:"No blog found"})
     }
-    console.log("Data fetched successfully")
+    //console.log("Data fetched successfully")
     return res.status(201).send({status:true, data:filterByQuery})
 }
 catch(err) {
@@ -102,30 +102,32 @@ const deleteById = async function (req, res) {
 
 
 const deleteByQuery = async function (req, res) {
-  try {
-    let authorIds = req.query.authorId
-    let categorys = req.query.category
-    let tag = req.query.tags
-    let subcategorys = req.query.subcategory
-    if (!authorIds || !categorys || !tag || !subcategorys) {
-      return res.status(400).send({ status: false, msg: "quarys are required, BAD REQUEST" })
+    try {
+        let authorIds = req.query.authorId
+        let categories = req.query.category
+        let tag = req.query.tags
+        let subcategories = req.query.subcategory
+        if (!authorIds && !categories && !tag && !subcategories) {
+          console.log("provide all subs, tags")
+          return res.status(400).send({ status: false, msg: "query is required, BAD REQUEST" })
+        }
+        let authorDetails = await AuthorModel.findById({ _id: authorIds })
+        if (!authorDetails) {
+          return res.status(404).send({ status: false, msg: "authorId doesn't exist" })
+        } else {
+          let updatedDetails = await blogsmodel.findOneAndUpdate({$or: [ { authorId: authorIds },{ category: categories }, { tags: { $in: [tag] } }, { subcategory: { $in: [subcategories]}}]},{ isDeleted: true, deletedAt :Date.now}, { new: true })
+          res.status(201).send({status: true, data: updatedDetails})
+      
+          console.log(updatedDetails)
+        }
+    
+      }
+      catch (error) {
+        console.log(error)
+        res.status(500).send({status: false, msg: error.message })
+      }
     }
-    let authorDetails = await AuthorModel.findById({ _id: authorIds })
-    if (!authorDetails) {
-      return res.status(404).send({ status: false, msg: "authorId not exist" })
-    } else {
-      let updatedDetails = await blogsmodel.findOneAndUpdate({$or: [ { authodId: authorIds },{ category: categorys }, { tags: { $in: [tag] } }, { subcategory: { $in: [subcategorys]}}]},{ isDeleted: true})
-      res.status(201).send({status: true, msg:"blog deleted "})
-      req.body.deletedAt = new Date()
-      console.log(updatedDetails)
-    }
-
-  }
-  catch (error) {
-    console.log(error)
-    res.status(500).send({status: false, msg: error.message })
-  }
-}
+    
 
 
 const loginUser = async function (req, res) {
